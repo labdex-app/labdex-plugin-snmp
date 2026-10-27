@@ -72,10 +72,15 @@ class Plugin(Base):
                 return []  # an agent without that MIB
         names = lldp.if_names(walk("if_name"), walk("if_descr"))
         found = lldp.lldp(walk("lldp_rem"), walk("lldp_loc"), walk("lldp_man"), names)
+        self._fdb = []
+        if self.ctx.settings.get("mac_tables", True) and hasattr(lldp, "fdb"):  # labdex 1.24: where is this MAC
+            qfdb = walk("qfdb")
+            self._fdb = lldp.fdb(walk("bridge_ports"), [] if qfdb else walk("fdb"), [] if qfdb else walk("fdb_status"),
+                                 qfdb, walk("qfdb_status") if qfdb else [], walk("vlan_fdb") if qfdb else [], names)
         return found + lldp.cdp(walk("cdp"), names)
 
     def run_poll(self, params):
-        links, report, errors, per_host = [], {}, [], {}
+        links, report, errors, per_host, macs = [], {}, [], {}, []
         for h, addr in self._targets():
             if not addr:
                 errors.append(f"{h['name']}: no address")
@@ -89,7 +94,9 @@ class Plugin(Base):
                 report[h["name"]] = {"state": "down", "detail": str(exc)[:200]}
                 continue
             days = int(up.get(UPTIME) or 0) // 8640000
-            report[h["name"]] = {"state": "up", "detail": f"SNMP answers · up {days} d · {len(found)} neighbour(s)",
+            fdb = getattr(self, "_fdb", [])
+            macs += [{"host": h["name"], "port": e["port"], "mac": e["mac"], "vlan": e["vlan"]} for e in fdb]
+            report[h["name"]] = {"state": "up", "detail": f"SNMP answers · up {days} d · {len(found)} neighbour(s)" + (f" · {len(fdb)} MAC(s)" if fdb else ""),
                                  "data": {"sys_name": lldp.text(up.get(lldp.SYS_NAME)), "neighbours": len(found)}}
             per_host[h["name"]] = [{k: n[k] for k in ("port", "protocol", "name", "remote_port", "ip", "mac", "platform")} for n in found]
             for n in found:
@@ -98,11 +105,13 @@ class Plugin(Base):
         for e in errors:
             self.ctx.log(e)
         seen = self.ctx.discovery.record_links(f"snmp {self.ctx.name}", links)
+        if hasattr(self.ctx.discovery, "record_macs") and self.ctx.settings.get("mac_tables", True):
+            self.ctx.discovery.record_macs(f"snmp {self.ctx.name}", macs)
         self.ctx.report_status(report)
         self.ctx.set_state("neighbours", per_host)
         if errors and not per_host:
             raise PluginError("no host answered: " + "; ".join(errors[:5]))
-        return {"switches": len(per_host), "links": seen["links"], "matched_ends": seen["matched_ends"], "errors": len(errors)}
+        return {"switches": len(per_host), "links": seen["links"], "matched_ends": seen["matched_ends"], "macs": len(macs), "errors": len(errors)}
 
     def widget_host(self, host):
         rows = (self.ctx.state.get("neighbours") or {}).get(host["name"])

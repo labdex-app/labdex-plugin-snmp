@@ -2,7 +2,7 @@ id: snmp
 name: SNMP neighbours
 kind: integration
 tags: [network, discovery, status]
-version: "1.0"
+version: "1.1"
 labdex: ">=1.20,<2"
 description: Reads switches and routers over SNMP (v2c or v3) — who sits on which port, from LLDP and Cisco's CDP — and suggests those cables on the Cables page. Also reports whether each one answers. Read-only. Applies to hosts tagged snmp to start with.
 applies_to: ["tag:snmp"]
@@ -16,6 +16,7 @@ settings:
   - {key: priv_pass, label: Privacy passphrase, type: secret, when: {version: v3, priv: aes, auth: [sha, sha256, sha512, md5]}}
   - {key: port, label: Port, type: int, default: 161, min: 1, max: 65535}
   - {key: timeout, label: Timeout (seconds), type: int, default: 3, min: 1, max: 30}
+  - {key: mac_tables, label: Read MAC tables, type: bool, default: true, help: "BRIDGE-MIB / Q-BRIDGE-MIB: which MAC is behind which port (labdex 1.24: Discovery › Where is)"}
 host_settings:
   - {key: address, label: Address for SNMP, type: string, help: "Default: the host's primary address"}
 actions:
