@@ -1,5 +1,7 @@
 # SNMP neighbours
 
+[![Release](https://github.com/labdex-app/labdex-plugin-snmp/actions/workflows/release.yml/badge.svg)](https://github.com/labdex-app/labdex-plugin-snmp/actions/workflows/release.yml) [![Buy Me a Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-bitsandbricks-7c3aed?logo=buymeacoffee&logoColor=white&labelColor=181b20)](https://buymeacoffee.com/bitsandbricks)
+
 A [labdex](https://github.com/labdex-app/labdex) plugin. Reads switches and routers over SNMP (v2c or v3) — who sits on which port, from LLDP and Cisco's CDP — and suggests those cables on the Cables page. Also reports whether each one answers. Read-only. Applies to hosts tagged snmp to start with.
 
 **Version** 1.0 · **Works with** labdex >=1.20,<2 · **Plugin id** `snmp`
